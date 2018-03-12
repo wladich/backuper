@@ -1,0 +1,37 @@
+backup_file: /tmp/dump.tmp
+log_file: /var/log/backup.log
+success_timestamp_file: /var/lib/backup/last_success
+
+prepare_backup: date > /tmp/dump.tmp
+prepare_backup_timeout: 60
+cleanup: rm /tmp/dump.tmp
+cleanup_timeout: 3
+verify: cat /tmp/dump.tmp > /dev/null
+verify_timeout: 30
+
+storages:
+  local:
+    type: local
+    root: /var/backup/mybackup
+
+  yandex:
+    type: webdav
+    root: /backups/test
+    host: "https://webdav.yandex.ru"
+    login: user@yandex.ru
+    password: "ThePassword"
+
+prefix: test_backup_
+suffix: ""
+
+retention:
+  - older_days: 365
+    store: no
+
+  - older_days: 14
+    interval_hours: 24
+
+  - older_days: 60
+    interval_hours: 168
+
+
