@@ -107,8 +107,8 @@ class BackupApp(object):
         for storage_name, storage_config in self.config['storages'].iteritems():
             storage = self.get_storage(storage_config)
             local_file_path = self.config['backup_file']
-            if os.path.exists(local_file_path):
-                raise Exception('Local file exists before verify')
+            self.cleanup()
+            self.log('INFO', 'Downloading file', storage=storage_name, filename=filename)
             storage.get_file(filename, local_file_path)
             try:
                 self.execute_script(self.config['verify'], self.config['verify_timeout'])
@@ -160,14 +160,20 @@ class BackupApp(object):
                 self.log('INFO', 'Remove old file', storage=storage_name, filename=filename)
                 storage.delete_file(filename)
 
+    def cleanup(self):
+        path = self.config['backup_file']
+        if os.path.exists(path):
+            self.log('DEBUG', 'Cleanup', filename=path)
+            os.unlink(self.config['backup_file'])
+
     def run(self):
         try:
             self.log('INFO', 'Started')
             self.execute_script(self.config['prepare_backup'], self.config['prepare_backup_timeout'])
             filename = self.upload_backup()
             self.delete_old_backups()
-            self.execute_script(self.config['cleanup'], self.config['cleanup_timeout'])
             self.verify_backup(filename)
+            self.cleanup()
             self.log('INFO', 'Ended')
         except:
             self.log('EXCEPTION')

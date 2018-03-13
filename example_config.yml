@@ -4,8 +4,6 @@ success_timestamp_file: /var/lib/backup/last_success
 
 prepare_backup: date > /tmp/dump.tmp
 prepare_backup_timeout: 60
-cleanup: rm /tmp/dump.tmp
-cleanup_timeout: 3
 verify: cat /tmp/dump.tmp > /dev/null
 verify_timeout: 30
 
