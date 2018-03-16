@@ -202,7 +202,7 @@ class BackupApp(object):
 
     def execute_script(self, script, timeout):
         self.log('DEBUG', 'Executing script %r' % script)
-        p = subprocess.Popen(script, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(script, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable='/bin/bash')
         hit_timeout = {'value': False}
 
         def on_timeout():
