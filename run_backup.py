@@ -216,7 +216,7 @@ class BackupApp(object):
         finally:
             timer.cancel()
         if hit_timeout['value']:
-            self.log('Script timeout', return_cod=p.returncode, stdout=stdout, stderr=stderr)
+            self.log('ERROR', 'Script timeout', return_cod=p.returncode, stdout=stdout, stderr=stderr)
             raise TimeoutError(script)
         self.log('DEBUG', 'Script result', return_cod=p.returncode, stdout=stdout, stderr=stderr)
         if p.returncode != 0:
