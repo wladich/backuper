@@ -11,6 +11,7 @@ import posixpath
 import time
 import urllib
 import calendar
+import tempfile
 
 import yaml
 
@@ -65,9 +66,56 @@ class WebdavStorageBackend(object):
         os.rename(tmp_path, dest_file_path)
 
 
+class RcloneStorageBqackend(object):
+    def __init__(self, root, config_file, backend_name):
+        self.backend_name = backend_name
+        if not root.endswith('/'):
+            root += '/'
+        self.root_dir = root
+        self.config_file = config_file
+
+    def _remote_specifier(self, filename=None):
+        path = self.root_dir
+        if filename is not None:
+            path += filename
+        return '%s:%s' % (self.backend_name, path)
+
+    def _run_command(self, args):
+        cmd = ['rclone', '--config', self.config_file] + args
+        return subprocess.check_output(cmd)
+
+    def put_file(self, src_file_path, dest_filename):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            shutil.copy(src_file_path, os.path.join(temp_dir, dest_filename))
+            self._run_command(['copy', os.path.join(temp_dir, dest_filename),
+                               self._remote_specifier()])
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def list_files(self):
+        s = self._run_command(['ls', '--max-depth=1', self._remote_specifier()])
+        files = []
+        for line in s.splitlines():
+            files.append(line.strip().split(' ', 1)[1].decode('utf-8'))
+        return files
+
+    def delete_file(self, filename):
+        self._run_command(['deletefile', self._remote_specifier(filename)])
+
+    def get_file(self, src_filename, dest_file_path):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            self._run_command(['copy', self._remote_specifier(src_filename), temp_dir])
+            shutil.move(os.path.join(temp_dir, src_filename), dest_file_path)
+        finally:
+            shutil.rmtree(temp_dir)
+
+
 storage_classes = {
     'local': LocalStorageBackend,
-    'webdav': WebdavStorageBackend
+    'webdav': WebdavStorageBackend,
+    'rclone': RcloneStorageBqackend,
 }
 
 
