@@ -82,7 +82,14 @@ class RcloneStorageBqackend(object):
 
     def _run_command(self, args):
         cmd = ['rclone', '--config', self.config_file] + args
-        return subprocess.check_output(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+        stdout = p.stdout.read()
+        stderr = p.stderr.read()
+        if p.returncode != 0:
+            raise Exception('Command %s returned exit status %s.\nSTDOUT:\n%s\nSTDERR:\n%s\n' % (
+                cmd, p.returncode, stdout, stderr))
+        return stdout
 
     def put_file(self, src_file_path, dest_filename):
         temp_dir = tempfile.mkdtemp()
