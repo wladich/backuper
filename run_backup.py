@@ -12,7 +12,6 @@ import time
 import urllib
 import calendar
 
-import easywebdav
 import yaml
 
 
@@ -43,6 +42,7 @@ class LocalStorageBackend(object):
 
 class WebdavStorageBackend(object):
     def __init__(self, root, host, login, password):
+        import easywebdav
         self.root_dir = root
         protocol, _, host = host.partition('://')
         self.client = easywebdav.connect(host, username=login, password=password, protocol=protocol)
