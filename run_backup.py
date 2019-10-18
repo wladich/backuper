@@ -12,6 +12,7 @@ import time
 import urllib
 import calendar
 import tempfile
+import json
 
 import yaml
 
@@ -101,11 +102,8 @@ class RcloneStorageBqackend(object):
             shutil.rmtree(temp_dir)
 
     def list_files(self):
-        s = self._run_command(['ls', '--max-depth=1', self._remote_specifier()])
-        files = []
-        for line in s.splitlines():
-            files.append(line.strip().split(' ', 1)[1].decode('utf-8'))
-        return files
+        s = self._run_command(['lsjson', self._remote_specifier()])
+        return [item['Name'] for item in json.loads(s)]
 
     def delete_file(self, filename):
         self._run_command(['deletefile', self._remote_specifier(filename)])
