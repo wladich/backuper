@@ -107,6 +107,7 @@ class RcloneStorageBqackend(object):
 
     def delete_file(self, filename):
         self._run_command(['deletefile', self._remote_specifier(filename)])
+        self._run_command(['cleanup', self._remote_specifier()])
 
     def get_file(self, src_filename, dest_file_path):
         temp_dir = tempfile.mkdtemp()
