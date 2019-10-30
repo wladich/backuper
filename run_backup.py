@@ -145,6 +145,7 @@ class BackupApp(object):
 
     def get_storage(self, storage_config):
         storage_config = storage_config.copy()
+        storage_config.pop('retention', None)
         storage_class = storage_classes[storage_config.pop('type')]
         storage = storage_class(**storage_config)
         return storage
@@ -172,16 +173,16 @@ class BackupApp(object):
         with open(self.config['success_timestamp_file'], 'w') as f:
             f.write(str(int(time.time())) + '\n')
 
-    def get_outdated_backup_dates(self, file_ts):
-        if not 'retention' in self.config:
+    def get_outdated_backup_dates(self, file_ts, retention_config):
+        if not retention_config:
             return []
         outdated = []
         now = time.time()
-        for period in self.config['retention']:
+        for period in retention_config:
             period['end'] = now - period['older_days'] * 24 * 3600
             if 'interval_hours' in period:
                 period['interval'] = period['interval_hours'] * 3600
-        retention_periods = iter(sorted(self.config['retention'], key=lambda rec: rec['end']))
+        retention_periods = iter(sorted(retention_config, key=lambda rec: rec['end']))
         current_period = None
 
         for (filename, ts) in sorted(file_ts, key=lambda fd: fd[1]):
@@ -210,7 +211,9 @@ class BackupApp(object):
                 file_ts = self.get_ts_from_backup_name(filename)
                 if file_ts is not None:
                     file_dates.append((filename, file_ts))
-            for (filename, _) in self.get_outdated_backup_dates(file_dates):
+            retention_config = storage_config.get('retention') or self.config.get('retention')
+
+            for (filename, _) in self.get_outdated_backup_dates(file_dates, retention_config):
                 self.log('INFO', 'Remove old file', storage=storage_name, filename=filename)
                 storage.delete_file(filename)
 
