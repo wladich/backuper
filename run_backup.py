@@ -67,7 +67,7 @@ class WebdavStorageBackend(object):
         os.rename(tmp_path, dest_file_path)
 
 
-class RcloneStorageBqackend(object):
+class RcloneStorageBackend(object):
     def __init__(self, root, config_file, backend_name):
         self.backend_name = backend_name
         if not root.endswith('/'):
@@ -121,7 +121,7 @@ class RcloneStorageBqackend(object):
 storage_classes = {
     'local': LocalStorageBackend,
     'webdav': WebdavStorageBackend,
-    'rclone': RcloneStorageBqackend,
+    'rclone': RcloneStorageBackend,
 }
 
 
