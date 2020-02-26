@@ -68,12 +68,13 @@ class WebdavStorageBackend(object):
 
 
 class RcloneStorageBackend(object):
-    def __init__(self, root, config_file, backend_name):
+    def __init__(self, root, config_file, backend_name, cleanup_on_delete=False):
         self.backend_name = backend_name
         if not root.endswith('/'):
             root += '/'
         self.root_dir = root
         self.config_file = config_file
+        self.cleanup_on_delete = cleanup_on_delete
 
     def _remote_specifier(self, filename=None):
         path = self.root_dir
@@ -107,7 +108,8 @@ class RcloneStorageBackend(object):
 
     def delete_file(self, filename):
         self._run_command(['deletefile', self._remote_specifier(filename)])
-        self._run_command(['cleanup', self._remote_specifier()])
+        if self.cleanup_on_delete:
+            self._run_command(['cleanup', self._remote_specifier()])
 
     def get_file(self, src_filename, dest_file_path):
         temp_dir = tempfile.mkdtemp()
