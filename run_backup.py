@@ -85,9 +85,7 @@ class RcloneStorageBackend(object):
     def _run_command(self, args):
         cmd = ['rclone', '--config', self.config_file] + args
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
-        stdout = p.stdout.read()
-        stderr = p.stderr.read()
+        stdout, stderr = p.communicate()
         if p.returncode != 0:
             raise Exception('Command %s returned exit status %s.\nSTDOUT:\n%s\nSTDERR:\n%s\n' % (
                 cmd, p.returncode, stdout, stderr))
