@@ -13,6 +13,7 @@ import urllib
 import calendar
 import tempfile
 import json
+import traceback
 
 import yaml
 
@@ -152,10 +153,17 @@ class BackupApp(object):
 
     def upload_backup(self):
         dest_filename = self.make_backup_filename()
+        errors = []
         for storage_name, storage_config in self.config['storages'].iteritems():
             storage = self.get_storage(storage_config)
             self.log('INFO', 'uploading', storage=storage_name, filename=dest_filename)
-            storage.put_file(src_file_path=self.config['backup_file'], dest_filename=dest_filename)
+            try:
+                storage.put_file(src_file_path=self.config['backup_file'], dest_filename=dest_filename)
+            except Exception:
+                errors.append(''.join(traceback.format_exc()))
+        if errors:
+            delim = '\n' + '-' * 80 + '\n'
+            raise Exception(delim.join(errors))
         return dest_filename
 
     def verify_backup(self, filename):
