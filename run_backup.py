@@ -68,6 +68,65 @@ class WebdavStorageBackend(object):
         os.rename(tmp_path, dest_file_path)
 
 
+class ResticStorageBackend(object):
+    tag_prefix = 'backup_filename='
+    restic_snapshot_filename = ''
+
+    def __init__(self, repo, password, cache_dir, tmp_dir, rclone_config_file='/etc/rclone.conf'):
+        self.restic_repo = repo
+        self.restic_password = password
+        self.cache_dir = cache_dir
+        self.tmp_dir = tmp_dir
+        self.rclone_config_file = rclone_config_file
+        try:
+            self.run_restic('snapshots')
+        except:
+            self.run_restic('init')
+
+    def get_restic_command(self, command, args):
+        return ['restic', '-r', self.restic_repo,
+               '-o',
+               'rclone.program=/usr/bin/rclone --retries=10 --retries-sleep=3s --config=%s' % self.rclone_config_file,
+               '--cleanup-cache',
+               '--cache-dir', self.cache_dir,
+               command] + list(args)
+
+    def run_restic(self, command, args=None, stdin=None, stdout=subprocess.PIPE):
+        env = {
+            'RESTIC_PASSWORD': self.restic_password,
+            'TMPDIR': self.tmp_dir,
+        }
+        cmd = self.get_restic_command(command, args or [])
+        p = subprocess.Popen(cmd, stdout=stdout, stderr=subprocess.PIPE, stdin=stdin, env=env)
+        stdout, stderr = p.communicate()
+        if p.returncode != 0:
+            raise Exception('Command %s returned exit status %s.\nSTDOUT:\n%s\nSTDERR:\n%s\n' % (
+                cmd, p.returncode, stdout, stderr))
+        return stdout
+
+    def put_file(self, src_file_path, dest_filename):
+        with open(src_file_path, 'rb') as f:
+            self.run_restic('backup', ['--stdin', '--tag', self.tag_prefix + dest_filename], stdin=f)
+
+    def list_files(self):
+        names = []
+        for snapshot in json.loads(self.run_restic('snapshots', ['--json'])):
+            for tag in snapshot['tags']:
+                if tag.startswith(self.tag_prefix):
+                    names.append(tag[len(self.tag_prefix):])
+                    break
+            else:
+                raise Exception('Filename tag not found for snapshot %s' % snapshot['short_id'])
+        return names
+
+    def delete_file(self, filename):
+        raise NotImplementedError
+
+    def get_file(self, src_filename, dest_file_path):
+        with open(dest_file_path, 'wb') as f:
+            self.run_restic('dump', ['--tag', self.tag_prefix + src_filename, 'latest', 'stdin'], stdout=f)
+
+
 class RcloneStorageBackend(object):
     def __init__(self, root, config_file, backend_name, cleanup_on_delete=False):
         self.backend_name = backend_name
@@ -123,6 +182,7 @@ storage_classes = {
     'local': LocalStorageBackend,
     'webdav': WebdavStorageBackend,
     'rclone': RcloneStorageBackend,
+    'restic': ResticStorageBackend,
 }
 
 
