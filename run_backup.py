@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # coding: utf-8
 import sys
 import os
@@ -9,7 +9,7 @@ import json
 import shutil
 import posixpath
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import calendar
 import tempfile
 import json
@@ -55,7 +55,7 @@ class WebdavStorageBackend(object):
         self.client.upload(src_file_path, dest_path)
 
     def list_files(self):
-        return [urllib.unquote(posixpath.basename(f.name)) for f in self.client.ls(self.root_dir)]
+        return [urllib.parse.unquote(posixpath.basename(f.name)) for f in self.client.ls(self.root_dir)]
 
     def delete_file(self, filename):
         path = posixpath.join(self.root_dir, filename)
@@ -214,7 +214,7 @@ class BackupApp(object):
     def upload_backup(self):
         dest_filename = self.make_backup_filename()
         errors = []
-        for storage_name, storage_config in self.config['storages'].iteritems():
+        for storage_name, storage_config in self.config['storages'].items():
             storage = self.get_storage(storage_config)
             self.log('INFO', 'uploading', storage=storage_name, filename=dest_filename)
             try:
@@ -227,7 +227,7 @@ class BackupApp(object):
         return dest_filename
 
     def verify_backup(self, filename):
-        for storage_name, storage_config in self.config['storages'].iteritems():
+        for storage_name, storage_config in self.config['storages'].items():
             storage = self.get_storage(storage_config)
             local_file_path = self.config['backup_file']
             self.cleanup()
@@ -271,7 +271,7 @@ class BackupApp(object):
         return outdated
 
     def delete_old_backups(self):
-        for storage_name, storage_config in self.config['storages'].iteritems():
+        for storage_name, storage_config in self.config['storages'].items():
             storage = self.get_storage(storage_config)
             filenames = storage.list_files()
             file_dates = []
@@ -341,15 +341,27 @@ class BackupApp(object):
         finally:
             timer.cancel()
         if hit_timeout['value']:
-            self.log('ERROR', 'Script timeout', return_cod=p.returncode, stdout=stdout, stderr=stderr)
+            self.log(
+                'ERROR',
+                'Script timeout',
+                return_cod=p.returncode,
+                stdout=stdout.decode(errors='backslashreplace'),
+                stderr=stderr.decode(errors='backslashreplace')
+            )
             raise TimeoutError(script)
-        self.log('DEBUG', 'Script result', return_cod=p.returncode, stdout=stdout, stderr=stderr)
+        self.log(
+            'DEBUG',
+            'Script result',
+            return_cod=p.returncode,
+            stdout=stdout.decode(errors='backslashreplace'),
+            stderr=stderr.decode(errors='backslashreplace')
+        )
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, script)
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print 'Usage: %s CONFIG_FILE' % os.path.basename(__file__)
+        print('Usage: %s CONFIG_FILE' % os.path.basename(__file__))
         exit(1)
     BackupApp(sys.argv[1]).run()
