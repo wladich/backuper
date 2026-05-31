@@ -207,6 +207,7 @@ class BackupApp(object):
     def get_storage(self, storage_config):
         storage_config = storage_config.copy()
         storage_config.pop('retention', None)
+        storage_config.pop('check', None)
         storage_class = storage_classes[storage_config.pop('type')]
         storage = storage_class(**storage_config)
         return storage
@@ -228,6 +229,9 @@ class BackupApp(object):
 
     def verify_backup(self, filename):
         for storage_name, storage_config in self.config['storages'].items():
+            if not storage_config.get('check', True):
+                self.log('INFO', 'Skipping backup verification', storage=storage_name)
+                continue
             storage = self.get_storage(storage_config)
             local_file_path = self.config['backup_file']
             self.cleanup()
